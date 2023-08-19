@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_a708b1dc_9f52_4031_affd_76a997d32224_Output_Variables_var_user = Any
+

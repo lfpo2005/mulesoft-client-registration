@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="implementation-save-user-main"
+		doc:id="e85467a9-0368-4ed0-a139-cd392f2d5923">
+
+		<flow-ref doc:name="Save Table User" doc:id="4fbeede7-fee6-413e-bd5a-b4d936a879b4" name="implementation-save-user-table-client"/>
+		<flow-ref doc:name="Save Table Address" doc:id="66244307-3f7d-4610-907c-c51498d7d891" name="implementation-save-table-address"/>
+		<ee:transform doc:name="Transform Message">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    message: "O cliente " ++ vars.input_payload.nome ++ " " ++ vars.input_payload.sobrenome ++ ", foi criado com sucesso.",
+    id_usuario: vars.idClient
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="implementation-save-user-table-client" doc:id="a708b1dc-9f52-4031-affd-76a997d32224" >
+		<ee:transform doc:name="Transform Message">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    pNome: vars.input_payload.nome,
+    pSobrenome: vars.input_payload.sobrenome
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:insert doc:name="Insert Client" config-ref="Database_Config" autoGenerateKeys="true">
+			<db:sql><![CDATA[INSERT INTO public.client(
+            name, lastname)
+        VALUES (:pNome, :pSobrenome) RETURNING id_client;]]></db:sql>
+			<db:input-parameters><![CDATA[#[payload]]]></db:input-parameters>
+			<db:auto-generated-keys-column-names>
+				<db:auto-generated-keys-column-name value="id_client" />
+			</db:auto-generated-keys-column-names>
+		</db:insert>
+		<set-variable value="#[(payload.generatedKeys.id_client default 0) as String]" doc:name="Id Client" doc:id="5258ea60-6ea0-49d5-9ebf-1a62484a412b" variableName="idClient"/>
+	</sub-flow>
+	<sub-flow name="implementation-save-table-address" doc:id="e5d7d0c9-629e-4116-9de4-e69927e0e29b" >
+		<ee:transform doc:name="Transform Message" doc:id="64627bdd-fb4a-48b4-9965-21ecc9013a09" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+var address = vars.input_payload.endereco
+---
+ {
+ 	pId_cliente: vars.idClient,
+    pCep: address.cep default "",
+    pCidade: address.cidade default "",
+    pEstado: address.estado default "",        
+    pRua: address.rua default ""
+    }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:insert doc:name="Insert Address" doc:id="4ea37e4c-3de3-4af8-97a9-f0343d4d23e9" config-ref="Database_Config">
+			<db:sql ><![CDATA[INSERT INTO public.address(
+	id_client, zip_code, city, uf, street)
+VALUES (:pId_cliente, :pCep, :pCidade, :pEstado, :pRua);]]></db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+	</sub-flow>
+</mule>
