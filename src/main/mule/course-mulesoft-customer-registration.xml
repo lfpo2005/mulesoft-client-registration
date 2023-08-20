@@ -102,7 +102,7 @@ output application/json
         </error-handler>
     </flow>
     <flow name="get:\health-check:curso-mulesoft-cadastro-cliente-config">
-        <logger level="INFO" message="get:\health-check:curso-mulesoft-cadastro-cliente-config" />
+		<flow-ref doc:name="Get Health Check" doc:id="11720ae8-59e4-429e-a5f7-bd50a2a1a4bd" name="implementation-health-check-main"/>
     </flow>
     <flow name="get:\cliente\(id):curso-mulesoft-cadastro-cliente-config">
         <ee:transform doc:name="Transform Message">
