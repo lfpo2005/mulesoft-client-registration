@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="implementation-get-user-main" doc:id="95b9f539-36d6-48a0-be74-73fdf2858e0d" >
+		<flow-ref doc:name="Get User DB" doc:id="b6dc5306-4456-4713-a0ec-848f14b35f1c" name="implementation-get-user-db"/>
+	</sub-flow>
+	<sub-flow name="implementation-get-user-db" doc:id="78c80bee-b0c3-4c2e-9546-de43ae285ed1" >
+		<db:select doc:name="Select" doc:id="2697abbc-c548-4fff-b2ca-adabaddd8186" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT 
+    c.id_client,
+    c.name,
+    c.lastname,
+    a.zip_code,
+    a.city,
+    a.uf,
+    a.street,
+    p.phone_number
+FROM client c
+JOIN address a ON c.id_client = a.id_client
+JOIN phone p ON c.id_client = p.id_client
+WHERE c.id_client = :pId_cliente;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	pId_cliente: vars.id_client
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="6be048ee-215d-48ac-9e87-ca9e7204b8d2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    
+    nome: payload[0].name,
+    sobrenome: payload[0].lastname,
+
+    telefones: payload.phone_number map (
+        {
+            ddd:$[0 to 1],
+            numero:$[2 to (sizeOf($)-1)]
+        }
+    ),
+
+    "endereço": {
+        cep: payload[0].zip_code,    
+        estado: payload[0].uf,
+        cidade: payload[0].city,
+        rua: payload[0].street
+    }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>
